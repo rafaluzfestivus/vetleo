@@ -1,22 +1,28 @@
 -- Initial schema for the Leo health/logistics/documentation system.
 -- Foundation migration: core tables only. OCR ingestion, Drive sync and the
 -- reminder scheduler are not implemented yet -- see docs/ARCHITECTURE.md.
+--
+-- Lives in its own "leo" schema, isolated from "public" because this
+-- project also hosts an unrelated business's production tables there.
+
+create schema if not exists leo;
 
 create extension if not exists "pgcrypto";
 
-create or replace function public.set_updated_at()
+create or replace function leo.set_updated_at()
 returns trigger as $$
 begin
   new.updated_at = timezone('utc'::text, now());
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql
+set search_path = leo, pg_temp;
 
 -- ---------------------------------------------------------------------------
 -- pets: root entity. One row today (Leo), kept relational instead of a
 -- hardcoded name so every other table has a stable owner to reference.
 -- ---------------------------------------------------------------------------
-create table public.pets (
+create table leo.pets (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   species text not null default 'canino',
@@ -30,8 +36,8 @@ create table public.pets (
 );
 
 create trigger set_updated_at
-  before update on public.pets
-  for each row execute function public.set_updated_at();
+  before update on leo.pets
+  for each row execute function leo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- documents: original files (fotos, PDFs) stored in Google Drive. This is
@@ -39,9 +45,9 @@ create trigger set_updated_at
 -- structured record below points back to the source file instead of the
 -- raw bytes being reprocessed.
 -- ---------------------------------------------------------------------------
-create table public.documents (
+create table leo.documents (
   id uuid primary key default gen_random_uuid(),
-  pet_id uuid not null references public.pets(id) on delete cascade,
+  pet_id uuid not null references leo.pets(id) on delete cascade,
   document_type text not null check (
     document_type in ('carteira_vacinacao', 'laudo', 'exame', 'receita', 'outro')
   ),
@@ -57,20 +63,20 @@ create table public.documents (
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
-create index documents_pet_id_idx on public.documents(pet_id);
+create index documents_pet_id_idx on leo.documents(pet_id);
 
 create trigger set_updated_at
-  before update on public.documents
-  for each row execute function public.set_updated_at();
+  before update on leo.documents
+  for each row execute function leo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- health_records: vacinas, exames e medicacoes com datas e validades.
 -- document_id links back to the source file OCR extracted this from.
 -- ---------------------------------------------------------------------------
-create table public.health_records (
+create table leo.health_records (
   id uuid primary key default gen_random_uuid(),
-  pet_id uuid not null references public.pets(id) on delete cascade,
-  document_id uuid references public.documents(id) on delete set null,
+  pet_id uuid not null references leo.pets(id) on delete cascade,
+  document_id uuid references leo.documents(id) on delete set null,
   record_type text not null check (
     record_type in ('vacina', 'exame', 'medicacao')
   ),
@@ -86,22 +92,22 @@ create table public.health_records (
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
-create index health_records_pet_id_idx on public.health_records(pet_id);
-create index health_records_expiration_date_idx on public.health_records(expiration_date);
+create index health_records_pet_id_idx on leo.health_records(pet_id);
+create index health_records_expiration_date_idx on leo.health_records(expiration_date);
 
 create trigger set_updated_at
-  before update on public.health_records
-  for each row execute function public.set_updated_at();
+  before update on leo.health_records
+  for each row execute function leo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- medical_history: contexto pregresso -- diagnosticos, sintomas, alergias,
 -- cirurgias e habitos. Distinct from health_records because these are
 -- narrative/historical facts, not dated recurring events with validity.
 -- ---------------------------------------------------------------------------
-create table public.medical_history (
+create table leo.medical_history (
   id uuid primary key default gen_random_uuid(),
-  pet_id uuid not null references public.pets(id) on delete cascade,
-  document_id uuid references public.documents(id) on delete set null,
+  pet_id uuid not null references leo.pets(id) on delete cascade,
+  document_id uuid references leo.documents(id) on delete set null,
   category text not null check (
     category in ('diagnostico', 'sintoma', 'alergia', 'cirurgia', 'habito')
   ),
@@ -113,21 +119,21 @@ create table public.medical_history (
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
-create index medical_history_pet_id_idx on public.medical_history(pet_id);
+create index medical_history_pet_id_idx on leo.medical_history(pet_id);
 
 create trigger set_updated_at
-  before update on public.medical_history
-  for each row execute function public.set_updated_at();
+  before update on leo.medical_history
+  for each row execute function leo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- reminders: one row per scheduled alert instance for a health_record
 -- (e.g. 30/7/0 days before a vaccine's expiration_date). Rows are meant to
 -- be generated by a future scheduler job, not entered by hand.
 -- ---------------------------------------------------------------------------
-create table public.reminders (
+create table leo.reminders (
   id uuid primary key default gen_random_uuid(),
-  pet_id uuid not null references public.pets(id) on delete cascade,
-  health_record_id uuid references public.health_records(id) on delete cascade,
+  pet_id uuid not null references leo.pets(id) on delete cascade,
+  health_record_id uuid references leo.health_records(id) on delete cascade,
   due_date date not null,
   offset_days integer not null default 0,
   alert_date date not null,
@@ -140,22 +146,22 @@ create table public.reminders (
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
-create index reminders_pet_id_idx on public.reminders(pet_id);
-create index reminders_pending_alert_date_idx on public.reminders(alert_date) where status = 'pending';
+create index reminders_pet_id_idx on leo.reminders(pet_id);
+create index reminders_pending_alert_date_idx on leo.reminders(alert_date) where status = 'pending';
 
 create trigger set_updated_at
-  before update on public.reminders
-  for each row execute function public.set_updated_at();
+  before update on leo.reminders
+  for each row execute function leo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- assistance_dog_profile: vinculos legais do cao de assistencia --
 -- laudo (Focinho Urbano), CRMV/CRM responsavel, CID-10. One profile per pet.
 -- ---------------------------------------------------------------------------
-create table public.assistance_dog_profile (
+create table leo.assistance_dog_profile (
   id uuid primary key default gen_random_uuid(),
-  pet_id uuid not null unique references public.pets(id) on delete cascade,
+  pet_id uuid not null unique references leo.pets(id) on delete cascade,
   legal_status text,
-  report_document_id uuid references public.documents(id) on delete set null,
+  report_document_id uuid references leo.documents(id) on delete set null,
   issuing_professional_name text,
   professional_registry text,
   cid10_code text,
@@ -167,16 +173,16 @@ create table public.assistance_dog_profile (
 );
 
 create trigger set_updated_at
-  before update on public.assistance_dog_profile
-  for each row execute function public.set_updated_at();
+  before update on leo.assistance_dog_profile
+  for each row execute function leo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- assistance_dog_tasks: tarefas treinadas (Lap, Across, Touch, ...).
 -- Separate table because a profile has many tasks.
 -- ---------------------------------------------------------------------------
-create table public.assistance_dog_tasks (
+create table leo.assistance_dog_tasks (
   id uuid primary key default gen_random_uuid(),
-  pet_id uuid not null references public.pets(id) on delete cascade,
+  pet_id uuid not null references leo.pets(id) on delete cascade,
   task_name text not null,
   description text,
   trained_date date,
@@ -186,11 +192,11 @@ create table public.assistance_dog_tasks (
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
-create index assistance_dog_tasks_pet_id_idx on public.assistance_dog_tasks(pet_id);
+create index assistance_dog_tasks_pet_id_idx on leo.assistance_dog_tasks(pet_id);
 
 create trigger set_updated_at
-  before update on public.assistance_dog_tasks
-  for each row execute function public.set_updated_at();
+  before update on leo.assistance_dog_tasks
+  for each row execute function leo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security -- placeholder policies.
@@ -209,10 +215,19 @@ begin
       'reminders', 'assistance_dog_profile', 'assistance_dog_tasks'
     ])
   loop
-    execute format('alter table public.%I enable row level security', t);
+    execute format('alter table leo.%I enable row level security', t);
     execute format(
-      'create policy "authenticated_full_access" on public.%I for all to authenticated using (true) with check (true)',
+      'create policy "authenticated_full_access" on leo.%I for all to authenticated using (true) with check (true)',
       t
     );
   end loop;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- PostgREST access. Grants alone don't expose the schema over the API --
+-- "leo" must also be added to Settings > API > Exposed schemas in the
+-- Supabase dashboard, which isn't controllable from a SQL migration.
+-- ---------------------------------------------------------------------------
+grant usage on schema leo to authenticated, service_role;
+grant all on all tables in schema leo to authenticated, service_role;
+alter default privileges in schema leo grant all on tables to authenticated, service_role;

@@ -19,11 +19,16 @@ consulta em vez de reler documentos.
 
 ## Estado atual
 
-Esta é a fundação: apenas o schema Postgres em
-`supabase/migrations/20260805120000_initial_schema.sql`. Nada foi aplicado a
-um projeto Supabase ainda, e a ingestão automática (OCR + upload para o
-Drive) descrita abaixo **não está implementada** — é o próximo passo depois
-que o schema for validado.
+O schema Postgres está aplicado no projeto Supabase existente
+(`rafaluzfestivus's Project`), isolado num schema próprio, **`leo`**, para
+não misturar com as tabelas de negócio já em produção nesse projeto
+(`public.Proposta`, `public.clients`, etc). A ingestão automática (OCR +
+upload para o Drive) descrita abaixo **não está implementada** — é o
+próximo passo.
+
+Para consultar via API REST/PostgREST, o schema `leo` precisa ser
+adicionado em *Settings > API > Exposed schemas* no dashboard do Supabase —
+isso não é controlável por migration SQL.
 
 ## Modelo de dados
 
@@ -66,10 +71,6 @@ automação externa) deveria:
 
 Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
 
-- **Projeto Supabase de destino**: criar um projeto novo dedicado, ou usar
-  um schema separado (ex.: `leo`) dentro de um projeto existente. O projeto
-  atualmente disponível na conta hospeda dados de produção de um negócio
-  não relacionado — não deve ser reaproveitado sem decisão explícita.
 - **Modelo de autenticação/propriedade**: as políticas de RLS atuais são um
   placeholder (`authenticated_full_access` — qualquer usuário autenticado
   tem acesso total). Precisa de um modelo real antes de ir para produção.
@@ -78,14 +79,12 @@ Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
 - **Canal de notificação dos lembretes** (WhatsApp, e-mail, push, etc.) e
   mecanismo de agendamento (`pg_cron` vs. automação externa).
 
-## Como aplicar o schema
-
-Depois que o projeto Supabase de destino for decidido:
+## Como reaplicar o schema
 
 ```bash
-supabase link --project-ref <project-ref>
+supabase link --project-ref xexsxiutjqzkqoclvwpu
 supabase db push
 ```
 
 Ou aplique `supabase/migrations/20260805120000_initial_schema.sql` via MCP
-(`apply_migration`) apontando para o projeto correto.
+(`apply_migration`).

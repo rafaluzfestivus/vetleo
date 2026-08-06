@@ -48,10 +48,19 @@ abaixo) — só a `service_role` acessa.
 
 ## Fluxo de ingestão (planejado, não implementado)
 
+Não há provedor de OCR externo. O próprio agente de IA lê o documento
+diretamente (leitura multimodal de PDF/imagem, ou `read_file_content` do
+Google Drive) e extrai os campos — sem chamar nenhuma API de OCR separada.
+Isso é suficiente para o volume baixo de um único pet; ver "Provedor de
+OCR" (resolvido) mais abaixo.
+
 1. Documento novo (foto/PDF) chega ao agente.
-2. OCR extrai datas, lote, validade, CRMV e observações.
-3. Arquivo original é renomeado (padrão a definir) e enviado ao Google Drive.
-4. Um registro é criado em `documents` com o link do Drive e o status do OCR.
+2. O agente lê o conteúdo e extrai datas, lote, validade, CRMV e
+   observações.
+3. Arquivo original é renomeado (padrão em "Convenção de nomes de
+   arquivo") e enviado à subpasta correta no Google Drive.
+4. Um registro é criado em `documents` com o link do Drive; `ocr_raw_text`
+   guarda o texto que o agente leu e `ocr_status` vira `processed`.
 5. Os dados extraídos viram linhas em `health_records` ou `medical_history`,
    referenciando `document_id`.
 6. Se o registro tiver `expiration_date`, o scheduler gera linhas em
@@ -147,11 +156,19 @@ dog walker, veterinário), essa decisão precisa ser revisitada: aí sim
 entra Supabase Auth de verdade e uma tabela de guardiões vinculando
 `user_id` a `pet_id`, com policies por linha.
 
+## Provedor de OCR
+
+Não há provedor externo. O agente de IA lê o documento diretamente
+(multimodal) em vez de chamar uma API de OCR/Document AI dedicada — sem
+custo extra, sem credenciais adicionais, adequado ao volume baixo de um
+único pet. Reavaliar se o volume de documentos crescer muito ou se a
+letra manuscrita de algum documento for difícil demais para leitura
+direta.
+
 ## Decisões em aberto
 
 Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
 
-- **Provedor de OCR**: qual serviço extrai texto/datas dos documentos.
 - **Canal de notificação dos lembretes** (WhatsApp, e-mail, push, etc.) e
   mecanismo de agendamento (`pg_cron` vs. automação externa).
 

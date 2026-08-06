@@ -51,7 +51,10 @@ export default async function Page() {
 
   return (
     <main>
-      <h1>🐾 Léo</h1>
+      <div className="chat-header">
+        <h1>🐾 Léo</h1>
+        <a href="/chat">💬 Chat</a>
+      </div>
       <p className="subtitle">Painel de saúde, documentos e lembretes</p>
 
       {loadError ? (

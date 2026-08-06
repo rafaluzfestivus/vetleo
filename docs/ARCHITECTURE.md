@@ -67,6 +67,35 @@ automação externa) deveria:
 3. Nos dias em que `alert_date = hoje` e `status = 'pending'`, disparar a
    notificação pelo `channel` configurado e marcar `status = 'sent'`.
 
+## Estrutura de pastas no Google Drive
+
+Os documentos do Léo já viviam soltos numa pasta raiz "Leo"
+(`19mphRK1ZB-WkkrP07YGPMsWclw0U5Y6N`). Foram criadas subpastas por
+categoria, espelhando o `document_type` de `leo.documents` (mais uma
+categoria de viagem/seguros, que não tem equivalente no enum ainda):
+
+| Subpasta | `document_type` correspondente | ID |
+|---|---|---|
+| `01_Vacinacao` | `carteira_vacinacao` | `1fPCL1D1FpSPArvrIGUeV2HEE_5143016` |
+| `02_Exames` | `exame` | `1oyy8MC0Ziuin7E03U0oiItDEdD9mIJbV` |
+| `03_Laudos` | `laudo` | `1mhdz2NLY2est4GEEF2Y7y11XhBAPwUPv` |
+| `04_Receitas` | `receita` | `1aXwlpPQ90Hxb9waYpXV8PP8vXY016Sle` |
+| `05_Viagem_Seguros` | `outro` (candidato a virar categoria própria) | `1c5KiBG9Hb3XYGBFZ4UVxPg3yDQCNyif7` |
+| `06_Outros` | `outro` | `17IT18jcZK4BxW6NJQYPjEME_OsZExWUA` |
+
+Os 10 arquivos que já estavam na raiz da pasta "Leo" ainda não foram
+movidos para dentro das subpastas — as ferramentas de Drive disponíveis
+neste projeto só copiam arquivos, não movem/apagam, então mover exige ação
+manual (drag-and-drop) no dashboard do Drive para não duplicar nada.
+Classificação sugerida para quando isso for feito:
+
+- `05_Viagem_Seguros`: CVI Leo.pdf, "Leo Charlie SD Card (8.56 x 5.4 cm).pdf",
+  Apolice Seguro Responsabilidade Civil.pdf, Apolice Seguro Saude.pdf
+- `03_Laudos`: Leo Certificado.pdf, Statement - Leo.pdf,
+  Statement - Leo - Pt.pdf, Atestado microchipagem.jpeg, Declaracao.jpeg
+- Pendente de confirmação: "Atentado Vacinacao Helena 03-08-2026 16.52.pdf"
+  — o nome menciona "Helena", não Léo, então não foi classificado.
+
 ## Decisões em aberto
 
 Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
@@ -75,7 +104,8 @@ Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
   placeholder (`authenticated_full_access` — qualquer usuário autenticado
   tem acesso total). Precisa de um modelo real antes de ir para produção.
 - **Provedor de OCR**: qual serviço extrai texto/datas dos documentos.
-- **Convenção de nomes e estrutura de pastas no Google Drive**.
+- **Convenção de nomes de arquivo** para documentos ingeridos automaticamente
+  (a estrutura de pastas já existe, ver acima).
 - **Canal de notificação dos lembretes** (WhatsApp, e-mail, push, etc.) e
   mecanismo de agendamento (`pg_cron` vs. automação externa).
 

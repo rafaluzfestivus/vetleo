@@ -43,7 +43,8 @@ isso não é controlável por migration SQL.
 | `assistance_dog_tasks` | Tarefas treinadas (Lap, Across, Touch, ...). Tabela separada porque um perfil tem várias tarefas. |
 
 Todas as tabelas têm `created_at`/`updated_at` (trigger `set_updated_at`) e
-RLS habilitado.
+RLS habilitado sem policies (ver "Modelo de autenticação/propriedade"
+abaixo) — só a `service_role` acessa.
 
 ## Fluxo de ingestão (planejado, não implementado)
 
@@ -125,13 +126,31 @@ Exemplos, com a subpasta de destino:
 | `2026-08-05_Leo_seguro_saude.pdf` | `05_Viagem_Seguros` |
 | `2026-08-05_Leo_outro_declaracao.jpeg` | `06_Outros` |
 
+## Modelo de autenticação/propriedade
+
+Não existe login de usuário final: o único operador acessa `leo.*`
+exclusivamente através do agente de IA, autenticado com a `service_role`
+key do Supabase — que ignora RLS por design. Não há tabela de guardiões
+nem app com login.
+
+Por isso o RLS fica **habilitado, mas sem nenhuma policy**, em todas as
+tabelas: isso nega acesso por padrão para os papéis `anon` e
+`authenticated`, e as `GRANT`s desses dois papéis no schema `leo` foram
+revogadas (ver
+`supabase/migrations/20260806000000_lockdown_rls_single_operator.sql`).
+Mesmo que alguém crie uma conta no projeto Supabase algum dia, ela não
+enxerga nada em `leo.*`. Um advisor `rls_enabled_no_policy` aparece para
+essas tabelas — é o comportamento esperado, não uma falha.
+
+Se um dia existir um app/painel com múltiplas pessoas logando (família,
+dog walker, veterinário), essa decisão precisa ser revisitada: aí sim
+entra Supabase Auth de verdade e uma tabela de guardiões vinculando
+`user_id` a `pet_id`, com policies por linha.
+
 ## Decisões em aberto
 
 Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
 
-- **Modelo de autenticação/propriedade**: as políticas de RLS atuais são um
-  placeholder (`authenticated_full_access` — qualquer usuário autenticado
-  tem acesso total). Precisa de um modelo real antes de ir para produção.
 - **Provedor de OCR**: qual serviço extrai texto/datas dos documentos.
 - **Canal de notificação dos lembretes** (WhatsApp, e-mail, push, etc.) e
   mecanismo de agendamento (`pg_cron` vs. automação externa).

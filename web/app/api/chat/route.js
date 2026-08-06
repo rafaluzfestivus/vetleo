@@ -26,7 +26,7 @@ Regras:
 function toCompactMessages(history) {
   if (!Array.isArray(history)) return [];
   return history
-    .filter((entry) => entry && (entry.role === 'user' || entry.role === 'assistant') && typeof entry.text === 'string')
+    .filter((entry) => entry && (entry.role === 'user' || entry.role === 'assistant') && typeof entry.text === 'string' && entry.text.trim().length > 0)
     .map((entry) => ({ role: entry.role, content: [{ type: 'text', text: entry.text }] }));
 }
 

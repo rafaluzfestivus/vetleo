@@ -13,7 +13,8 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim() && !file) return;
 
-    const userMessage = { role: 'user', text: input, fileName: file?.name };
+    const displayText = input.trim() || (file ? `[Arquivo anexado: ${file.name}]` : '');
+    const userMessage = { role: 'user', text: displayText, fileName: file?.name };
     const priorHistory = messages.map((m) => ({ role: m.role, text: m.text }));
     setMessages((prev) => [...prev, userMessage]);
     setSending(true);

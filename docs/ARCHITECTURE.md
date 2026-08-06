@@ -193,12 +193,46 @@ Vercel: **https://vetleo.vercel.app**.
   todo mundo em vez de deixar todo mundo entrar.
 - **Variáveis de ambiente** (Project Settings > Environment Variables na
   Vercel — não configuráveis por aqui, mesma limitação de permissão):
-  `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DASHBOARD_PASSWORD`.
+  `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DASHBOARD_PASSWORD`,
+  `ANTHROPIC_API_KEY` (para o chat, ver abaixo).
 - **Projeto Vercel**: `vetleo`, na equipe "rafaluzfestivus' projects" —
   mesma equipe que hospeda os sites de negócio (preventivasur, quimera,
   etc). Assim como no Supabase, os dados do Léo ficam isolados (schema
   próprio, sem overlap de projeto), mas o *projeto* Vercel em si convive
   com projetos de negócio na mesma equipe.
+
+### Chat (`/chat`, `/api/chat`)
+
+O painel principal é só leitura; `/chat` é onde a entrada de dados
+acontece pela web, sem precisar de uma sessão de agente separada. É um
+chat de verdade: texto + upload de imagem/PDF, atrás do mesmo gate de
+senha.
+
+- **Modelo**: `claude-sonnet-5`, chamado direto via REST
+  (`https://api.anthropic.com/v1/messages`), sem SDK. Precisa de
+  `ANTHROPIC_API_KEY` (Project Settings > Environment Variables) — sem
+  ela a rota responde 503, mesma filosofia fail-closed do resto do app.
+- **Ferramentas** (`web/lib/chat-tools.js`): `query_records`,
+  `insert_record`, `update_record`. Cada uma valida a tabela e as colunas
+  contra um allowlist (`web/lib/db-schema.js`) antes de tocar o Supabase
+  — o modelo não escreve coluna arbitrária nem alcança tabela fora da
+  lista. `pets` e `reminders` ficam só-leitura mesmo pelo chat (pets
+  porque só deveria existir o Léo; reminders porque é gerado pelo
+  scheduler, não digitado à mão).
+- **Arquivos**: sem OCR externo — o próprio Claude lê a imagem/PDF
+  (bloco `image`/`document` multimodal na mensagem), igual ao resto do
+  projeto. O arquivo em si é salvo num bucket privado do **Supabase
+  Storage** (`leo-documents`), não no Google Drive: o app rodando na
+  Vercel não tem credencial do Drive (isso só existe nesta sessão de
+  agente, via MCP). A URL assinada do Storage é passada pro modelo, que
+  deve usá-la ao criar um registro em `documents` -- sem inventar link.
+- **Histórico**: mantido só no navegador (estado em memória da página),
+  não persistido em tabela nenhuma. Cada turno reenvia o histórico
+  compactado (texto puro, sem os arquivos de turnos anteriores) pro
+  servidor.
+- **Limite prático**: `maxDuration = 60` na rota, mas planos Hobby da
+  Vercel não permitem passar de ~10s por função — pedidos que exigem
+  várias chamadas de ferramenta em sequência podem estourar o tempo.
 
 ## Decisões em aberto
 

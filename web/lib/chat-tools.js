@@ -20,12 +20,19 @@ export const TOOLS = [
   },
   {
     name: 'insert_record',
-    description: 'Insere uma nova linha numa tabela do schema leo.',
+    description:
+      'Insere uma ou mais linhas numa tabela do schema leo. Para documentos com várias entradas (ex: carteira de vacinação com N vacinas), passe todas de uma vez em "values" como uma lista -- não faça uma chamada por linha.',
     input_schema: {
       type: 'object',
       properties: {
         table: { type: 'string', enum: TABLE_NAMES },
-        values: { type: 'object', description: 'Pares coluna: valor a inserir.' },
+        values: {
+          description: 'Um objeto de coluna:valor para inserir uma linha, ou uma lista de objetos para inserir várias linhas de uma vez.',
+          oneOf: [
+            { type: 'object' },
+            { type: 'array', items: { type: 'object' } },
+          ],
+        },
       },
       required: ['table', 'values'],
     },
@@ -68,14 +75,20 @@ export async function executeTool(supabase, name, input) {
   }
 
   if (name === 'insert_record') {
-    const values = input.values ?? {};
-    const disallowed = Object.keys(values).filter((key) => !tableInfo.insertable.includes(key));
+    const isBatch = Array.isArray(input.values);
+    const rows = isBatch ? input.values : [input.values ?? {}];
+    if (rows.length === 0) {
+      return { error: 'values não pode ser uma lista vazia.' };
+    }
+    const disallowed = [...new Set(rows.flatMap((row) => Object.keys(row ?? {})))].filter(
+      (key) => !tableInfo.insertable.includes(key)
+    );
     if (disallowed.length > 0) {
       return { error: `Colunas não permitidas para insert em "${table}": ${disallowed.join(', ')}` };
     }
-    const { data, error } = await supabase.from(table).insert(values).select().single();
+    const { data, error } = await supabase.from(table).insert(rows).select();
     if (error) return { error: error.message };
-    return { data };
+    return { data: isBatch ? data : data[0] };
   }
 
   if (name === 'update_record') {

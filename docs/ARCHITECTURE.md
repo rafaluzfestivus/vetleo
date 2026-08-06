@@ -68,14 +68,21 @@ OCR" (resolvido) mais abaixo.
 
 ## Fluxo de lembretes (planejado, não implementado)
 
-Um job periódico (candidatos: Supabase Edge Function + `pg_cron`, ou uma
-automação externa) deveria:
+Canal: **notificação push**, entregue pelo próprio agente de IA (sem
+WhatsApp/e-mail/serviço externo). Mecanismo: uma **Routine diária**
+(trigger agendado do Claude Code Remote, tipo cron) dispara uma sessão do
+agente que:
 
-1. Escanear `health_records` por `expiration_date` próxima.
-2. Garantir que existem linhas `reminders` para os offsets configurados,
-   evitando duplicatas.
-3. Nos dias em que `alert_date = hoje` e `status = 'pending'`, disparar a
-   notificação pelo `channel` configurado e marcar `status = 'sent'`.
+1. Escaneia `health_records` por `expiration_date` próxima.
+2. Garante que existem linhas em `reminders` para os offsets configurados
+   (30/7/0 dias), evitando duplicatas.
+3. Para linhas com `alert_date = hoje` e `status = 'pending'`, envia uma
+   notificação push e marca `status = 'sent'`.
+
+Não depende de `pg_cron` nem de Edge Function — a Routine já é o
+agendador. Criar essa Routine fica para quando existirem `health_records`
+de verdade para monitorar (hoje as tabelas estão vazias); ativá-la agora
+seria uma rotina diária sem nada para checar.
 
 ## Estrutura de pastas no Google Drive
 
@@ -167,10 +174,10 @@ direta.
 
 ## Decisões em aberto
 
-Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
-
-- **Canal de notificação dos lembretes** (WhatsApp, e-mail, push, etc.) e
-  mecanismo de agendamento (`pg_cron` vs. automação externa).
+Nenhuma no momento — todas as decisões de fundação (auth, OCR, canal de
+lembrete, pastas, nomenclatura) foram tomadas. Os itens que restam são de
+implementação: montar o fluxo de ingestão de verdade e criar a Routine de
+lembretes quando houver `health_records` para monitorar.
 
 ## Como reaplicar o schema
 

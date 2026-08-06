@@ -83,18 +83,11 @@ categoria de viagem/seguros, que não tem equivalente no enum ainda):
 | `05_Viagem_Seguros` | `outro` (candidato a virar categoria própria) | `1c5KiBG9Hb3XYGBFZ4UVxPg3yDQCNyif7` |
 | `06_Outros` | `outro` | `17IT18jcZK4BxW6NJQYPjEME_OsZExWUA` |
 
-Os 10 arquivos que já estavam na raiz da pasta "Leo" ainda não foram
-movidos para dentro das subpastas — as ferramentas de Drive disponíveis
-neste projeto só copiam arquivos, não movem/apagam, então mover exige ação
-manual (drag-and-drop) no dashboard do Drive para não duplicar nada.
-Classificação sugerida para quando isso for feito:
-
-- `05_Viagem_Seguros`: CVI Leo.pdf, "Leo Charlie SD Card (8.56 x 5.4 cm).pdf",
-  Apolice Seguro Responsabilidade Civil.pdf, Apolice Seguro Saude.pdf
-- `03_Laudos`: Leo Certificado.pdf, Statement - Leo.pdf,
-  Statement - Leo - Pt.pdf, Atestado microchipagem.jpeg, Declaracao.jpeg
-- Pendente de confirmação: "Atentado Vacinacao Helena 03-08-2026 16.52.pdf"
-  — o nome menciona "Helena", não Léo, então não foi classificado.
+Os 10 arquivos que já estavam soltos na raiz da pasta "Leo" não têm nomes
+no padrão do projeto (ver "Convenção de nomes de arquivo" abaixo) e não
+foram classificados nas subpastas. Em vez disso, serão retirados da pasta
+principal pelo usuário e reaproveitados como massa de teste do pipeline de
+ingestão (OCR + renomeação automática) quando ele existir.
 
 ## Decisões em aberto
 

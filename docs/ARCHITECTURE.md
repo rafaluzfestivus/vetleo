@@ -172,6 +172,34 @@ custo extra, sem credenciais adicionais, adequado ao volume baixo de um
 letra manuscrita de algum documento for difícil demais para leitura
 direta.
 
+## Painel web (dashboard)
+
+Complementa o agente de IA com uma página de leitura rápida, sem precisar
+abrir uma conversa. Código em `web/` (Next.js App Router), deployado na
+Vercel: **https://vetleo.vercel.app**.
+
+- **Dados**: Server Component (`web/app/page.js`) consulta `leo.*` direto
+  com a `service_role` key (`web/lib/supabase.js`), lida só no servidor —
+  a chave nunca chega ao browser. Sem fetch client-side, então não existe
+  caminho via chave `anon` que vazasse dado médico contornando a senha.
+- **Proteção**: senha compartilhada própria (`web/proxy.js` +
+  `web/app/login`, `web/app/api/login`), não a proteção nativa da Vercel.
+  O token deste ambiente não tem permissão para alterar configurações do
+  projeto (`update_project_deployment_protection` retornou 403 — falta de
+  permissão e/ou recurso exclusivo do plano Pro), então a senha foi
+  implementada em código: cookie httpOnly comparado a
+  `sha256(DASHBOARD_PASSWORD)`. **Fecha por padrão**: se
+  `DASHBOARD_PASSWORD` não estiver configurada, a página responde 503 para
+  todo mundo em vez de deixar todo mundo entrar.
+- **Variáveis de ambiente** (Project Settings > Environment Variables na
+  Vercel — não configuráveis por aqui, mesma limitação de permissão):
+  `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DASHBOARD_PASSWORD`.
+- **Projeto Vercel**: `vetleo`, na equipe "rafaluzfestivus' projects" —
+  mesma equipe que hospeda os sites de negócio (preventivasur, quimera,
+  etc). Assim como no Supabase, os dados do Léo ficam isolados (schema
+  próprio, sem overlap de projeto), mas o *projeto* Vercel em si convive
+  com projetos de negócio na mesma equipe.
+
 ## Decisões em aberto
 
 Nenhuma no momento — todas as decisões de fundação (auth, OCR, canal de

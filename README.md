@@ -17,10 +17,14 @@ retrabalho de reprocessar PDFs e fotos a cada conversa.
 
 ## Estado atual
 
-Fundação do schema de dados. Veja [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-para o modelo de dados completo e as decisões em aberto (projeto Supabase de
-destino, modelo de autenticação, provedor de OCR, integração com o Drive).
+Fundação pronta: schema Postgres aplicado (schema `leo`, isolado, RLS
+travado para `service_role`), pastas organizadas no Google Drive, e um
+painel de leitura em **https://vetleo.vercel.app** (código em
+[`web/`](web/)). Veja [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) para
+o modelo de dados completo e as decisões tomadas.
 
-O schema Postgres vive em
-[`supabase/migrations/20260805120000_initial_schema.sql`](supabase/migrations/20260805120000_initial_schema.sql)
-e ainda não foi aplicado a nenhum projeto Supabase.
+O que falta é implementação: o fluxo de ingestão de documentos (OCR +
+upload automático) e a Routine diária de lembretes — ambos esperando
+`health_records` de verdade para trabalhar em cima.
+
+O schema Postgres vive em [`supabase/migrations/`](supabase/migrations/).

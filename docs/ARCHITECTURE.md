@@ -89,6 +89,42 @@ foram classificados nas subpastas. Em vez disso, serão retirados da pasta
 principal pelo usuário e reaproveitados como massa de teste do pipeline de
 ingestão (OCR + renomeação automática) quando ele existir.
 
+### Convenção de nomes de arquivo
+
+Todo arquivo processado pelo pipeline de ingestão é renomeado para:
+
+```
+AAAA-MM-DD_Pet_tipo_descricao-curta.ext
+```
+
+- **`AAAA-MM-DD`**: data do evento extraída do documento (data de aplicação
+  da vacina, data do exame, data de emissão do laudo/apólice) — não a data
+  do upload. Se o OCR não conseguir extrair uma data, usa a data do upload
+  e registra essa ressalva em `documents.notes`.
+- **`Pet`**: nome do pet sem acento (`Leo`), capitalizado.
+- **`tipo`**: slug minúsculo alinhado à subpasta de destino —
+  `vacina`, `exame`, `laudo`, `receita`, `viagem`, `seguro` ou `outro`.
+- **`descricao-curta`**: slug ascii em minúsculas, palavras separadas por
+  hífen, até ~30 caracteres (ex.: `antirrabica`, `hemograma-completo`,
+  `cvi-ue`, `seguro-saude`).
+- **`.ext`**: extensão original, minúscula.
+- Caracteres permitidos: `[a-z0-9-_.]`. Acentos são transliterados
+  (`á`→`a`, `ç`→`c`), espaços viram hífen.
+- Colisão de nome no mesmo destino: acrescenta `-2`, `-3`, ... antes da
+  extensão.
+
+Exemplos, com a subpasta de destino:
+
+| Nome final | Subpasta |
+|---|---|
+| `2026-08-03_Leo_vacina_antirrabica.pdf` | `01_Vacinacao` |
+| `2026-06-01_Leo_exame_hemograma-completo.pdf` | `02_Exames` |
+| `2026-07-15_Leo_laudo_focinho-urbano.pdf` | `03_Laudos` |
+| `2026-05-10_Leo_receita_apoquel.pdf` | `04_Receitas` |
+| `2026-08-05_Leo_viagem_cvi-ue.pdf` | `05_Viagem_Seguros` |
+| `2026-08-05_Leo_seguro_saude.pdf` | `05_Viagem_Seguros` |
+| `2026-08-05_Leo_outro_declaracao.jpeg` | `06_Outros` |
+
 ## Decisões em aberto
 
 Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
@@ -97,8 +133,6 @@ Estas escolhas não foram feitas ainda e bloqueiam a próxima fase:
   placeholder (`authenticated_full_access` — qualquer usuário autenticado
   tem acesso total). Precisa de um modelo real antes de ir para produção.
 - **Provedor de OCR**: qual serviço extrai texto/datas dos documentos.
-- **Convenção de nomes de arquivo** para documentos ingeridos automaticamente
-  (a estrutura de pastas já existe, ver acima).
 - **Canal de notificação dos lembretes** (WhatsApp, e-mail, push, etc.) e
   mecanismo de agendamento (`pg_cron` vs. automação externa).
 
